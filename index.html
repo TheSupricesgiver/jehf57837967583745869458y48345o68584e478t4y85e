@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      text-align: center;
+      background: radial-gradient(circle at center, #0f2027, #203a43, #2c5364);
+      color: white;
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      text-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+    }
+
+    .message {
+      font-size: 1.8em;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #ffffff, 0 0 20px #ff00cc;
+      min-height: 60px;
+    }
+
+    .scoreboard {
+      margin-bottom: 30px;
+      font-size: 1.4em;
+      text-shadow: 0 0 10px #ffffff, 0 0 20px #0077ff;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      width: 90%;
+      max-width: 400px;
+    }
+
+    .cell {
+      width: 100%;
+      padding-top: 100%;
+      position: relative;
+      background: linear-gradient(145deg, #1a1a2e, #162447);
+      box-shadow: 5px 5px 15px #000000, -5px -5px 15px #2c5364;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .cell:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px #00ffcc, 0 0 40px #00ffcc;
+    }
+
+    .cell::after {
+      content: attr(data-value);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 3.2em;
+      color: white;
+      text-align: center;
+    }
+
+    .cell.x::after {
+      color: red;
+      text-shadow: 0 0 15px red, 0 0 30px red;
+    }
+
+    .cell.o::after {
+      color: blue;
+      text-shadow: 0 0 15px blue, 0 0 30px blue;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background: linear-gradient(145deg, #1a1a2e, #162447);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      cursor: pointer;
+      box-shadow: 5px 5px 15px #000000, -5px -5px 15px #2c5364;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 20px #ff00cc, 0 0 40px #ff00cc;
+    }
+
+    @media (max-width: 768px) {
+      h1 {
+        font-size: 2em;
+      }
+      .message {
+        font-size: 1.5em;
+      }
+      .scoreboard {
+        font-size: 1.2em;
+      }
+      .cell::after {
+        font-size: 2.5em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>Tic Tac Toe</h1>
+  <div class="message" id="message"></div>
+  <div class="scoreboard">
+    User (X): <span id="userScore">0</span> | Computer (O): <span id="computerScore">0</span>
+  </div>
+  <div class="board" id="board"></div>
+  <button onclick="restartGame()">Restart Game</button>
+
+  <script>
+    const boardElement = document.getElementById('board');
+    const messageElement = document.getElementById('message');
+    const userScoreElement = document.getElementById('userScore');
+    const computerScoreElement = document.getElementById('computerScore');
+    let board = Array(9).fill('');
+    let userScore = 0;
+    let computerScore = 0;
+    let gameActive = true;
+
+    const winningCombinations = [
+      [0, 1, 2], [3, 4, 5], [6, 7, 8],
+      [0, 3, 6], [1, 4, 7], [2, 5, 8],
+      [0, 4, 8], [2, 4, 6]
+    ];
+
+    function createBoard() {
+      boardElement.innerHTML = '';
+      board.forEach((cell, index) => {
+        const cellElement = document.createElement('div');
+        cellElement.classList.add('cell');
+        cellElement.setAttribute('data-value', cell);
+        if (cell) cellElement.classList.add(cell === 'X' ? 'x' : 'o');
+        cellElement.addEventListener('click', () => userMove(index));
+        boardElement.appendChild(cellElement);
+      });
+    }
+
+    function userMove(index) {
+      if (!gameActive || board[index]) return;
+      board[index] = 'X';
+      createBoard();
+      if (checkWinner('X')) {
+        userScore++;
+        userScoreElement.textContent = userScore;
+        displayMessage('User Wins! 🎉 You nailed it!');
+        gameActive = false;
+        return;
+      }
+      if (board.every(cell => cell)) {
+        displayMessage('It\'s a Tie! ✨🌀 Fantastic game!');
+        gameActive = false;
+        return;
+      }
+      computerMove();
+    }
+
+    function computerMove() {
+      const bestMove = minimax(board, 'O').index;
+      board[bestMove] = 'O';
+      createBoard();
+      if (checkWinner('O')) {
+        computerScore++;
+        computerScoreElement.textContent = computerScore;
+        displayMessage('Computer Wins! 🎯 Tough luck, try again!');
+        gameActive = false;
+        return;
+      }
+      if (board.every(cell => cell)) {
+        displayMessage('It\'s a Tie! ✨🌀 Fantastic game!');
+        gameActive = false;
+      }
+    }
+
+    function checkWinner(player) {
+      return winningCombinations.some(combination =>
+        combination.every(index => board[index] === player)
+      );
+    }
+
+    function displayMessage(msg) {
+      messageElement.textContent = msg;
+    }
+
+    function minimax(newBoard, player) {
+      const emptyIndexes = newBoard.reduce((acc, val, idx) => val === '' ? acc.concat(idx) : acc, []);
+
+      if (checkWinner('X')) return { score: -10 };
+      if (checkWinner('O')) return { score: 10 };
+      if (emptyIndexes.length === 0) return { score: 0 };
+
+      const moves = [];
+      for (let i = 0; i < emptyIndexes.length; i++) {
+        const index = emptyIndexes[i];
+        const move = { index };
+        newBoard[index] = player;
+
+        move.score = player === 'O'
+          ? minimax(newBoard, 'X').score
+          : minimax(newBoard, 'O').score;
+
+        newBoard[index] = '';
+        moves.push(move);
+      }
+
+      return player === 'O'
+        ? moves.reduce((best, move) => move.score > best.score ? move : best, { score: -Infinity })
+        : moves.reduce((best, move) => move.score < best.score ? move : best, { score: Infinity });
+    }
+
+    function restartGame() {
+      board = Array(9).fill('');
+      gameActive = true;
+      messageElement.textContent = '';
+      createBoard();
+    }
+
+    createBoard();
+  </script>
+</body>
+</html>
